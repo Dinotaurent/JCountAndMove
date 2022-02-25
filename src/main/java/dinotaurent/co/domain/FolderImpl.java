@@ -60,7 +60,7 @@ public class FolderImpl implements IFolder {
                 }
             }
         }
-        
+
         if (listadoTemp != null || listadoTemp.length != 0) {
             for (File archivo : listadoTemp) {
                 try {
@@ -85,10 +85,23 @@ public class FolderImpl implements IFolder {
 //                System.out.println(documento);
                 try {
                     Path mover = Files.move(documento, destino);
-                    log.info("Se movio el archivo " + documento +" a la ruta: " + PATH_TEMP);
+                    log.info("Se movio el archivo " + documento + " a la ruta: " + PATH_TEMP);
                 } catch (Exception ex) {
                     log.error(ex);
                 }
+            }
+            try {
+                Thread.sleep(3000);
+                String[] cmd = {"sc.exe stop ServicioTestJavaX", "sc.exe config \"ServicioTestJavaX\" obj= \".\\usuario2\" password= \",,41qw96\"", "sc.exe start ServicioTestJavaX"};
+
+                for (var i : cmd) {
+                    Runtime.getRuntime().exec(i);
+                    Thread.sleep(800);
+                }
+
+                log.info("Se han reiniciado los servicios correctamente!!");
+            } catch (IOException | InterruptedException ex) {
+                log.error(ex);
             }
         }
 

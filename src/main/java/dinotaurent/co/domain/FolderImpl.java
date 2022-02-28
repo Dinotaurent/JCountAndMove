@@ -28,7 +28,7 @@ public class FolderImpl implements IFolder {
     public ArrayList<String> nombresArchivosTemp = new ArrayList<String>();
     public ArrayList<String> fechasArchivos = new ArrayList<String>();
     public ArrayList<String> dosificador = new ArrayList<String>();
-    public boolean movido = false;
+    public boolean movido = true;
     File pathEntrada = new File(PATH_ENTRADA);
     File pathTemp = new File(PATH_TEMP);
     BasicFileAttributes attrs;
@@ -74,7 +74,7 @@ public class FolderImpl implements IFolder {
 
             if (!nombresArchivosTemp.isEmpty()) {
                 if (nombresArchivosTemp.size() < 5) {
-                    for (int i = 0; dosificador.size() == nombresArchivosTemp.size(); i++) {
+                    for (int i = 0; dosificador.size() < contadorTemp; i++) {
                         dosificador.add(nombresArchivosTemp.get(i));
                     }
                 } else if (nombresArchivosTemp.size() >= 5) {
@@ -121,7 +121,7 @@ public class FolderImpl implements IFolder {
         } else if (contadorEntrada == 0 && contadorTemp > 0) {
             System.out.println("Entro en la secuencia: B");
             log.info("Se procedera a dosificar los documentos a la ruta de entrada");
-
+//
 //            System.out.println(dosificador.size());
 //            System.out.println(dosificador);
             for (var archivo : dosificador) {
@@ -136,11 +136,13 @@ public class FolderImpl implements IFolder {
                     log.error(ex);
                 }
             }
+
             dosificador.clear();
             nombresArchivosTemp.clear();
+
             contar();
 
-        } else if (contadorEntrada == 0 && contadorTemp == 0 || contadorEntrada == 5 && contadorTemp == 0) {
+        } else if (contadorEntrada == 0 && contadorTemp == 0 || contadorEntrada <= 5 && contadorTemp == 0) {
             System.out.println("Entro en la secuencia: C");
             log.info("No se detectaron bloqueos ni documentos pendientes, se volvera a ejecutar dentro de 10 segundos");
             try {

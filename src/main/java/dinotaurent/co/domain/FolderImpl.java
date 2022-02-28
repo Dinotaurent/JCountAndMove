@@ -8,7 +8,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import org.apache.log4j.*;
 import java.nio.file.*;
 
 /**
@@ -28,6 +27,8 @@ public class FolderImpl implements IFolder {
     public ArrayList<String> nombresArchivosEntrada = new ArrayList<String>();
     public ArrayList<String> nombresArchivosTemp = new ArrayList<String>();
     public ArrayList<String> fechasArchivos = new ArrayList<String>();
+    public ArrayList<String> dosificador = new ArrayList<String>();
+    public boolean movido = false;
     File pathEntrada = new File(PATH_ENTRADA);
     File pathTemp = new File(PATH_TEMP);
     BasicFileAttributes attrs;
@@ -43,11 +44,9 @@ public class FolderImpl implements IFolder {
         contadorTemp = listadoTemp.length;
 //     System.out.println(contadorTemp);
 
-        if (listadoEntrada == null || listadoEntrada.length == 0) {
-            log.info("No hay documentos dentro de la ruta de entrada");
-        } else {
+        if (listadoEntrada != null || listadoEntrada.length != 0) {
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-            log.info("Se encontraron: " + contadorEntrada + " documentos en la ruta");
+            log.info("Se encontraron: " + contadorEntrada + " documentos en la ruta de entrada");
             for (File archivo : listadoEntrada) {
                 try {
                     attrs = Files.readAttributes(archivo.toPath(), BasicFileAttributes.class);
@@ -66,17 +65,32 @@ public class FolderImpl implements IFolder {
                 try {
                     attrs = Files.readAttributes(archivo.toPath(), BasicFileAttributes.class);
                     nombresArchivosTemp.add(archivo.getName());
+
 //                    System.out.println(nombresArchivosTemp);
                 } catch (IOException ex) {
                     log.error(ex);
                 }
             }
+
+            if (!nombresArchivosTemp.isEmpty()) {
+                if (nombresArchivosTemp.size() < 5) {
+                    for (int i = 0; dosificador.size() == nombresArchivosTemp.size(); i++) {
+                        dosificador.add(nombresArchivosTemp.get(i));
+                    }
+                } else if (nombresArchivosTemp.size() >= 5) {
+                    for (int i = 0; dosificador.size() < 5; i++) {
+                        dosificador.add(nombresArchivosTemp.get(i));
+                    }
+                }
+            }
         }
+        mover();
     }
 
     public void mover() {
 
         if (contadorEntrada > 5 && contadorTemp == 0) {
+            System.out.println("Entro en la secuencia: A");
             log.info("Se ha detectado bloqueo, procedera a mover los documentos y reiniciar los servicios");
 
             for (var archivo : nombresArchivosEntrada) {
@@ -103,6 +117,47 @@ public class FolderImpl implements IFolder {
             } catch (IOException | InterruptedException ex) {
                 log.error(ex);
             }
+            contar();
+        } else if (contadorEntrada == 0 && contadorTemp > 0) {
+            System.out.println("Entro en la secuencia: B");
+            log.info("Se procedera a dosificar los documentos a la ruta de entrada");
+
+//            System.out.println(dosificador.size());
+//            System.out.println(dosificador);
+            for (var archivo : dosificador) {
+                Path documento = Path.of(PATH_TEMP + archivo);
+                Path destino = Path.of(PATH_ENTRADA + "\\" + archivo);
+
+                try {
+                    Path mover = Files.move(documento, destino);
+                    log.info("Se movio el archivo " + documento + " a la ruta: " + PATH_ENTRADA);
+                    movido = true;
+                } catch (Exception ex) {
+                    log.error(ex);
+                }
+            }
+            dosificador.clear();
+            nombresArchivosTemp.clear();
+            contar();
+
+        } else if (contadorEntrada == 0 && contadorTemp == 0 || contadorEntrada == 5 && contadorTemp == 0) {
+            System.out.println("Entro en la secuencia: C");
+            log.info("No se detectaron bloqueos ni documentos pendientes, se volvera a ejecutar dentro de 10 segundos");
+            try {
+                Thread.sleep(15000);
+            } catch (InterruptedException ex) {
+                log.error(ex);
+            }
+            contar();
+        } else if (contadorEntrada <= 5 && contadorTemp > 0) {
+            System.out.println("Entre en la secuencia: E");
+            log.info("Aun no se han evacuado los documentos dosificados, se volvera a ejecutar dentro de 5 segundos");
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException ex) {
+                log.error(ex);
+            }
+            contar();
         }
 
     }

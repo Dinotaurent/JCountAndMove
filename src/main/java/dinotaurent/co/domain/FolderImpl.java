@@ -9,7 +9,6 @@ import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.nio.file.*;
-import java.util.stream.IntStream;
 
 /**
  *
@@ -31,6 +30,10 @@ public class FolderImpl implements IFolder {
     public ArrayList<String> docNuevos = new ArrayList<String>();
     public ArrayList<String> documentos = new ArrayList<String>();
     public ArrayList<String> nombresDocNuevos = new ArrayList<String>();
+    public ArrayList<String> docRezagados = new ArrayList<String>();
+    public boolean rezagado = false;
+    public boolean movido = true;
+    public boolean bandera = false;
     File pathEntrada = new File(PATH_ENTRADA);
     File pathTemp = new File(PATH_TEMP);
     BasicFileAttributes attrs;
@@ -84,6 +87,14 @@ public class FolderImpl implements IFolder {
                 }
             }
         }
+        if (docRezagados.isEmpty()) {
+            for (int i = 0; docRezagados.size() < contadorEntrada; i++) {
+                docRezagados.add(nombresArchivosEntrada.get(i));
+            }
+        } else {
+            docRezagados.clear();
+        }
+
         mover();
     }
 
@@ -140,6 +151,7 @@ public class FolderImpl implements IFolder {
             nombresArchivosTemp.clear();
             nombresArchivosEntrada.clear();
             nombresDocNuevos.clear();
+            docRezagados.clear();
             contar();
         } else if (contadorEntrada == 0 && contadorTemp > 0) {
             System.out.println("Entro en la secuencia: B");
@@ -177,12 +189,22 @@ public class FolderImpl implements IFolder {
             nombresArchivosTemp.clear();
             nombresArchivosEntrada.clear();
             nombresDocNuevos.clear();
+            docRezagados.clear();
             contar();
 
-        } else if (contadorEntrada == 0 && contadorTemp == 0 || contadorEntrada <= 5 && contadorTemp == 0) {
+        } else if (contadorEntrada == 0 && contadorTemp == 0 || contadorEntrada <= 5 && contadorTemp == 0 && !rezagado) {
             System.out.println("Entro en la secuencia: C");
             log.info("No se detectaron bloqueos ni documentos pendientes, se volvera a ejecutar dentro de 10 segundos");
             try {
+
+                if (!movido) {
+                    rezagado = true;
+                }
+
+                if (docRezagados.equals(nombresArchivosEntrada)) {
+                    movido = false;
+                }
+
                 Thread.sleep(15000);
             } catch (InterruptedException ex) {
                 log.error(ex);
@@ -196,10 +218,28 @@ public class FolderImpl implements IFolder {
             nombresArchivosEntrada.clear();
             nombresDocNuevos.clear();
             contar();
-        } else if (contadorEntrada <= 5 && contadorTemp > 0) {
+        } else if (contadorEntrada <= 5 && contadorTemp > 0 && !rezagado) {
             System.out.println("Entre en la secuencia: D");
             log.info("Aun no se han evacuado los documentos dosificados, se volvera a ejecutar dentro de 5 segundos");
             try {
+                
+                if(bandera && contadorEntrada == 5 || bandera && movido){
+                    rezagado = true;
+                } else if(bandera && contadorEntrada < 5 ){
+                    movido = true;
+                }
+                
+                if (!movido && contadorEntrada == 5) {
+                    bandera = true;
+                }
+                if (!rezagado) {
+                    if (contadorEntrada == 5) {
+                        if (docRezagados.equals(nombresArchivosEntrada)) {
+                            movido = false;
+                        }
+                    }
+                }
+
                 Thread.sleep(10000);
             } catch (InterruptedException ex) {
                 log.error(ex);
@@ -212,6 +252,7 @@ public class FolderImpl implements IFolder {
             nombresArchivosTemp.clear();
             nombresArchivosEntrada.clear();
             nombresDocNuevos.clear();
+            docRezagados.clear();
             contar();
         } else if (contadorEntrada > 5 && contadorTemp > 0) {
             System.out.println("Entre en la secuencia: E");
@@ -254,6 +295,61 @@ public class FolderImpl implements IFolder {
             nombresArchivosTemp.clear();
             nombresArchivosEntrada.clear();
             nombresDocNuevos.clear();
+            docRezagados.clear();
+            contar();
+        } else if (contadorEntrada <= 5 && rezagado) {
+            System.out.println("Entre en la secuencia: F");
+            log.info("No se detecto movimiento en la ruta de entrada dentro de mucho tiempo, se procedera a reiniciar los servicios");
+            try {
+                //Se recorren los nombres y se elimina la fecha del nombre.
+                for (String archivo : nombresArchivosEntrada) {
+                    StringBuilder sb = new StringBuilder(archivo);
+                    for (int i = 0; i < 14; i++) {
+                        sb.deleteCharAt(0);
+                    }
+                    documentos.add(String.valueOf(sb));
+                }
+                //Se recorren los documentos y se crea un path con los nombres para ser movidos.
+                for (var archivo : documentos) {
+                    Path documento = Path.of(PATH_ENTRADA + "\\" + archivo);
+                    Path destino = Path.of(PATH_TEMP + archivo);
+//                System.out.println(documento);
+                    try {
+                        Path mover = Files.move(documento, destino);
+                        log.info("Se movio el archivo " + documento + " a la ruta: " + PATH_TEMP);
+                    } catch (Exception ex) {
+                        log.error(ex);
+                    }
+                }
+            } catch (Exception ex) {
+                log.error(ex);
+            }
+
+            //Se reinician los servicios.
+            try {
+                Thread.sleep(3000);
+                String[] cmd = {"sc.exe stop ServicioTestJavaX", "sc.exe config \"ServicioTestJavaX\" obj= \".\\usuario2\" password= \",,41qw96\"", "sc.exe start ServicioTestJavaX"};
+
+                for (var i : cmd) {
+                    Runtime.getRuntime().exec(i);
+                    Thread.sleep(800);
+                }
+
+                log.info("Se han reiniciado los servicios correctamente!!");
+            } catch (IOException | InterruptedException ex) {
+                log.error(ex);
+            }
+            rezagado = false;
+            movido = true;
+            bandera = false;
+            //Se limpian todos los arreglos para evitar sobreescritura.
+            documentos.clear();
+            docNuevos.clear();
+            dosificador.clear();
+            nombresArchivosTemp.clear();
+            nombresArchivosEntrada.clear();
+            nombresDocNuevos.clear();
+            docRezagados.clear();
             contar();
         }
 

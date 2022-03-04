@@ -22,6 +22,7 @@ public class FolderImpl implements IFolder {
     private static final String PATH_TEMP = "C:\\Users\\danie\\Desktop\\prueba\\temp\\";
     public int contadorEntrada = 0;
     public int contadorTemp = 0;
+    public int contadorAnterior = 0;
     public File[] listadoEntrada;
     public File[] listadoTemp;
     public ArrayList<String> nombresArchivosEntrada = new ArrayList<String>();
@@ -222,24 +223,32 @@ public class FolderImpl implements IFolder {
             System.out.println("Entre en la secuencia: D");
             log.info("Aun no se han evacuado los documentos dosificados, se volvera a ejecutar dentro de 5 segundos");
             try {
-                
-                if(bandera && contadorEntrada == 5 || bandera && movido){
+
+                if (bandera && contadorEntrada == 5 || bandera && movido) {
                     rezagado = true;
-                } else if(bandera && contadorEntrada < 5 ){
+                } else if (bandera && contadorEntrada < 5) {
                     movido = true;
                 }
-                
+
                 if (!movido && contadorEntrada == 5) {
                     bandera = true;
+                } else if (!movido && contadorAnterior == contadorEntrada) {
+                    rezagado = true;
                 }
+
                 if (!rezagado) {
                     if (contadorEntrada == 5) {
                         if (docRezagados.equals(nombresArchivosEntrada)) {
                             movido = false;
                         }
+                    } else if (contadorEntrada <= 5) {
+                        if (contadorAnterior == 0 || contadorAnterior != contadorEntrada) {
+                            contadorAnterior = contadorEntrada;
+                        } else if (contadorAnterior == contadorEntrada) {
+                            movido = false;
+                        }
                     }
                 }
-
                 Thread.sleep(10000);
             } catch (InterruptedException ex) {
                 log.error(ex);

@@ -19,6 +19,7 @@ public class FolderImpl implements IFolder {
     private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(Test.class);
 
     private static final String PATH_ENTRADA = "C:\\Users\\danie\\Desktop\\prueba";
+//    private static final String PATH_ENTRADA = "C:\\Users\\danie\\Desktop\\testservicio";
     private static final String PATH_TEMP = "C:\\Users\\danie\\Desktop\\prueba\\temp\\";
     public int contadorEntrada = 0;
     public int contadorTemp = 0;
@@ -35,6 +36,7 @@ public class FolderImpl implements IFolder {
     public boolean rezagado = false;
     public boolean movido = true;
     public boolean bandera = false;
+    public boolean renombrado = false;
     File pathEntrada = new File(PATH_ENTRADA);
     File pathTemp = new File(PATH_TEMP);
     BasicFileAttributes attrs;
@@ -120,10 +122,25 @@ public class FolderImpl implements IFolder {
                     Path destino = Path.of(PATH_TEMP + archivo);
 //                System.out.println(documento);
                     try {
-                        Path mover = Files.move(documento, destino);
+//                        Path mover = Files.move(documento, destino);
+                        Path mover = Files.move(documento, destino.resolveSibling(destino));
                         log.info("Se movio el archivo " + documento + " a la ruta: " + PATH_TEMP);
+
                     } catch (Exception ex) {
                         log.error(ex);
+                        while (renombrado == false) {
+                            System.out.println("El archivo no se puede mover debido que esta en uso, se esperar 8 segundos");
+                            log.info("El archivo no se puede mover debido que esta en uso, se esperar 8 segundos");
+                            Thread.sleep(8000);
+                            if (renombrado == false) {
+                                try {
+                                    Path mover = Files.move(documento, destino.resolveSibling(destino));
+                                    renombrado = true;
+                                } catch (Exception exx) {
+                                    log.error(exx);
+                                }
+                            }
+                        }
                     }
                 }
             } catch (Exception ex) {
@@ -146,6 +163,7 @@ public class FolderImpl implements IFolder {
             }
 
             //Se limpian todos los arreglos para evitar sobreescritura.
+            renombrado = false;
             documentos.clear();
             docNuevos.clear();
             dosificador.clear();
@@ -184,6 +202,7 @@ public class FolderImpl implements IFolder {
             }
 
             //Se limpian todos los arreglos para evitar sobreescritura.
+            renombrado = false;
             documentos.clear();
             docNuevos.clear();
             dosificador.clear();
@@ -195,7 +214,7 @@ public class FolderImpl implements IFolder {
 
         } else if (contadorEntrada == 0 && contadorTemp == 0 || contadorEntrada <= 5 && contadorTemp == 0 && !rezagado) {
             System.out.println("Entro en la secuencia: C");
-            log.info("No se detectaron bloqueos ni documentos pendientes, se volvera a ejecutar dentro de 10 segundos");
+            log.info("No se detectaron bloqueos ni documentos pendientes o la cantidad es inferior al limite, se volvera a ejecutar dentro de 10 segundos");
             try {
 
                 if (!movido) {
@@ -212,6 +231,7 @@ public class FolderImpl implements IFolder {
             }
 
             //Se limpian todos los arreglos para evitar sobreescritura.
+            renombrado = false;
             documentos.clear();
             docNuevos.clear();
             dosificador.clear();
@@ -255,6 +275,7 @@ public class FolderImpl implements IFolder {
             }
 
             //Se limpian todos los arreglos para evitar sobreescritura.
+            renombrado = false;
             documentos.clear();
             docNuevos.clear();
             dosificador.clear();
@@ -286,10 +307,23 @@ public class FolderImpl implements IFolder {
                     Path documento = Path.of(PATH_ENTRADA + "\\" + archivo);
                     Path destino = Path.of(PATH_TEMP + archivo);
                     try {
-                        Path mover = Files.move(documento, destino);
+                        Path mover = Files.move(documento, destino.resolveSibling(destino));
                         log.info("Se movio el archivo " + documento + " a la ruta: " + PATH_TEMP);
                     } catch (Exception ex) {
                         log.error(ex);
+                        while (renombrado == false) {
+                            System.out.println("El archivo no se puede mover debido que esta en uso, se esperar 8 segundos");
+                            log.info("El archivo no se puede mover debido que esta en uso, se esperar 8 segundos");
+                            Thread.sleep(8000);
+                            if (renombrado == false) {
+                                try {
+                                    Path mover = Files.move(documento, destino.resolveSibling(destino));
+                                    renombrado = true;
+                                } catch (Exception exx) {
+                                    log.error(exx);
+                                }
+                            }
+                        }
                     }
                 }
                 Thread.sleep(3000);
@@ -298,6 +332,7 @@ public class FolderImpl implements IFolder {
             }
 
             //Se limpian todos los arreglos para evitar sobreescritura.
+            renombrado = false;
             documentos.clear();
             docNuevos.clear();
             dosificador.clear();
@@ -324,10 +359,23 @@ public class FolderImpl implements IFolder {
                     Path destino = Path.of(PATH_TEMP + archivo);
 //                System.out.println(documento);
                     try {
-                        Path mover = Files.move(documento, destino);
+                        Path mover = Files.move(documento, destino.resolveSibling(destino));
                         log.info("Se movio el archivo " + documento + " a la ruta: " + PATH_TEMP);
                     } catch (Exception ex) {
                         log.error(ex);
+                        while (renombrado == false) {
+                            System.out.println("El archivo no se puede mover debido que esta en uso, se esperar 8 segundos");
+                            log.info("El archivo no se puede mover debido que esta en uso, se esperar 8 segundos");
+                            Thread.sleep(8000);
+                            if (renombrado == false) {
+                                try {
+                                    Path mover = Files.move(documento, destino.resolveSibling(destino));
+                                    renombrado = true;
+                                } catch (Exception exx) {
+                                    log.error(exx);
+                                }
+                            }
+                        }
                     }
                 }
             } catch (Exception ex) {
@@ -348,10 +396,12 @@ public class FolderImpl implements IFolder {
             } catch (IOException | InterruptedException ex) {
                 log.error(ex);
             }
+            
+            //Se limpian todos los arreglos para evitar sobreescritura.
+            renombrado = false;
             rezagado = false;
             movido = true;
             bandera = false;
-            //Se limpian todos los arreglos para evitar sobreescritura.
             documentos.clear();
             docNuevos.clear();
             dosificador.clear();
